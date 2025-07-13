@@ -1,37 +1,36 @@
+import requests
+import json
 from datetime import datetime
-import logging
 
-# Required imports for GraphQL check
-from gql import gql, Client
-from gql.transport.requests import RequestsHTTPTransport
+def update_low_stock():
+    query = '''
+    mutation {
+      updateLowStockProducts {
+        updatedProducts {
+          name
+          stock
+        }
+        message
+      }
+    }
+    '''
 
-def log_crm_heartbeat():
-    # Setup log file
-    log_file = "/tmp/crm_heartbeat_log.txt"
-    timestamp = datetime.now().strftime("%d/%m/%Y-%H:%M:%S")
-    message = f"{timestamp} CRM is alive\n"
+    response = requests.post(
+        'http://localhost:8000/graphql/',
+        json={'query': query}
+    )
 
-    try:
-        with open(log_file, "a") as file:
-            file.write(message)
-
-        # Optional GraphQL "hello" check
-        transport = RequestsHTTPTransport(
-            url='http://localhost:8000/graphql',
-            verify=False,
-            retries=3,
-        )
-        client = Client(transport=transport, fetch_schema_from_transport=True)
-
-        query = gql('''
-            query {
-                hello
-            }
-        ''')
-        result = client.execute(query)
-        with open(log_file, "a") as file:
-            file.write(f"GraphQL hello response: {result.get('hello')}\n")
-
-    except Exception as e:
-        with open(log_file, "a") as file:
-            file.write(f"Error: {e}\n")
+    with open('/tmp/low_stock_updates_log.txt', 'a') as f:
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        if response.status_code == 200:
+            data = response.json()
+            if 'errors' in data:
+                f.write(f"[{timestamp}] GraphQL Error: {data['errors']}\n")
+            else:
+                updates = data['data']['updateLowStockProducts']['updatedProducts']
+                msg = data['data']['updateLowStockProducts']['message']
+                f.write(f"[{timestamp}] {msg}\n")
+                for product in updates:
+                    f.write(f" - {product['name']}: stock={product['stock']}\n")
+        else:
+            f.write(f"[{timestamp}] Request failed with status code {response.status_code}\n")
