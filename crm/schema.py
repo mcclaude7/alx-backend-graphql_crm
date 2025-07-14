@@ -1,39 +1,33 @@
 import graphene
-from graphene_django import DjangoObjectType
-from .models import Product
-from datetime import datetime
+from graphene_django.types import DjangoObjectType
+from .models import Product  # assuming a Product model exists
 
 class ProductType(DjangoObjectType):
     class Meta:
         model = Product
-        fields = ("id", "name", "stock")
 
 class UpdateLowStockProducts(graphene.Mutation):
     class Arguments:
-        pass
+        pass  # no input arguments
 
-    updated_products = graphene.List(ProductType)
+    success = graphene.Boolean()
     message = graphene.String()
+    updated_products = graphene.List(ProductType)
 
     def mutate(self, info):
+        updated = []
         low_stock_products = Product.objects.filter(stock__lt=10)
-        updated_list = []
 
         for product in low_stock_products:
-            product.stock += 10  # Simulate restocking
+            product.stock += 10
             product.save()
-            updated_list.append(product)
+            updated.append(product)
 
         return UpdateLowStockProducts(
-            updated_products=updated_list,
-            message=f"Updated {len(updated_list)} products at {datetime.now().isoformat()}"
+            success=True,
+            message=f"{len(updated)} product(s) updated.",
+            updated_products=updated
         )
 
 class Mutation(graphene.ObjectType):
     update_low_stock_products = UpdateLowStockProducts.Field()
-
-class Query(graphene.ObjectType):
-    # your existing queries
-    pass
-
-schema = graphene.Schema(query=Query, mutation=Mutation)
