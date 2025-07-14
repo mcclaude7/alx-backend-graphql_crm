@@ -1,5 +1,9 @@
 import datetime
 import logging
+import requests
+from gql import gql, Client
+from gql.transport.requests import RequestsHTTPTransport
+
 
 logger = logging.getLogger(__name__)
 
@@ -25,26 +29,49 @@ def update_low_stock_products():
 
 def log_crm_heartbeat():
     timestamp = datetime.datetime.now().strftime("%d/%m/%Y-%H:%M:%S")
-    log_import datetime
-import requests
+   
+
 
 def log_crm_heartbeat():
     timestamp = datetime.datetime.now().strftime("%d/%m/%Y-%H:%M:%S")
     log_message = f"{timestamp} CRM is alive\n"
-
+    
     try:
-        response = requests.post(
-            'http://localhost:8000/graphql',
-            json={"query": "{ hello }"}
+        transport = RequestsHTTPTransport(
+            url='http://localhost:8000/graphql',
+            verify=True,
+            retries=3,
         )
-        if response.ok:
-            result = response.json()
-            log_message += f"GraphQL hello: {result.get('data', {}).get('hello', 'No response')}\n"
-        else:
-            log_message += "GraphQL endpoint unreachable.\n"
+        client = Client(transport=transport, fetch_schema_from_transport=True)
+
+        query = gql("""
+        query {
+            hello
+        }
+        """)
+        result = client.execute(query)
+        hello_value = result.get("hello", "No response")
+        log_message += f"GraphQL hello: {hello_value}\n"
+
     except Exception as e:
         log_message += f"GraphQL error: {e}\n"
 
     with open("/tmp/crm_heartbeat_log.txt", "a") as f:
         f.write(log_message)
+
+    # try:
+    #     response = requests.post(
+    #         'http://localhost:8000/graphql',
+    #         json={"query": "{ hello }"}
+    #     )
+    #     if response.ok:
+    #         result = response.json()
+    #         log_message += f"GraphQL hello: {result.get('data', {}).get('hello', 'No response')}\n"
+    #     else:
+    #         log_message += "GraphQL endpoint unreachable.\n"
+    # except Exception as e:
+    #     log_message += f"GraphQL error: {e}\n"
+
+    # with open("/tmp/crm_heartbeat_log.txt", "a") as f:
+    #     f.write(log_message)
     
