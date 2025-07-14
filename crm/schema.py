@@ -1,28 +1,30 @@
 import graphene
 from .models import Product
 
+
 class ProductType(graphene.ObjectType):
     id = graphene.ID()
     name = graphene.String()
     stock = graphene.Int()
 
 class UpdateLowStockProducts(graphene.Mutation):
-    class Output:
-        updated_products = graphene.List(ProductType)
-        message = graphene.String()
+    success = graphene.Boolean()
+    message = graphene.String()
+    updated_products = graphene.List(graphene.String)
 
     def mutate(self, info):
         low_stock_products = Product.objects.filter(stock__lt=10)
-        updated = []
+        updated_names = []
 
         for product in low_stock_products:
             product.stock += 10
             product.save()
-            updated.append(product)
+            updated_names.append(product.name)
 
         return UpdateLowStockProducts(
-            updated_products=updated,
-            message=f"{len(updated)} products restocked successfully."
+            success=True,
+            message=f"{len(updated_names)} products updated",
+            updated_products=updated_names
         )
 
 class Mutation(graphene.ObjectType):
