@@ -104,7 +104,7 @@ GRAPHENE = {
 # Task 2 & 3: Django-crontab configuration
 CRONJOBS = [
     ('*/5 * * * *', 'crm.cron.log_crm_heartbeat'),     # Task 2: Every 5 minutes
-    ('0 */12 * * *', 'crm.cron.update_low_stock'),     # Task 3: Every 12 hours
+    ('0 */12 * * *', 'crm.cron.update_low_stock_products'),     # Task 3: Every 12 hours
 ]
 
 # Optional: Configure cron job settings

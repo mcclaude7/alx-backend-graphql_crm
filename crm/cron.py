@@ -23,16 +23,6 @@ def log_heartbeat():
 def update_low_stock_products():
     timestamp = datetime.datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
 
-    mutation = gql("""
-        mutation {
-            updateLowStockProducts {
-                success
-                message
-                updatedProducts
-            }
-        }
-    """)
-
     transport = RequestsHTTPTransport(
         url='http://localhost:8000/graphql',
         verify=True,
@@ -41,58 +31,27 @@ def update_low_stock_products():
 
     client = Client(transport=transport, fetch_schema_from_transport=True)
 
+    mutation = gql("""
+    mutation {
+        updateLowStockProducts {
+            success
+            message
+            updatedProducts
+        }
+    }
+    """)
+
     try:
         result = client.execute(mutation)
-        data = result["updateLowStockProducts"]
-        success = data["success"]
-        message = data["message"]
-        updated_products = data["updatedProducts"]
-
-        log_message = f"{timestamp} {message}: {', '.join(updated_products)}\n"
-
+        updates = result["updateLowStockProducts"]["updatedProducts"]
+        message = result["updateLowStockProducts"]["message"]
+        with open("/tmp/low_stock_updates_log.txt", "a") as f:
+            f.write(f"{timestamp} {message}\n")
+            for item in updates:
+                f.write(f"{timestamp} Updated: {item}\n")
     except Exception as e:
-        log_message = f"{timestamp} Failed to update stock: {e}\n"
-
-    with open("/tmp/low_stock_updates_log.txt", "a") as f:
-        f.write(log_message)
-
-# def update_low_stock_products():
-#     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-#     log_path = "/tmp/low_stock_updates_log.txt"
-    
-#     try:
-#         transport = RequestsHTTPTransport(
-#             url='http://localhost:8000/graphql',
-#             use_json=True,
-#             retries=3,
-#         )
-#         client = Client(transport=transport, fetch_schema_from_transport=True)
-
-#         mutation = gql("""
-#         mutation {
-#             updateLowStockProducts {
-#                 updatedProducts {
-#                     name
-#                     stock
-#                 }
-#                 message
-#             }
-#         }
-#         """)
-
-#         result = client.execute(mutation)
-#         updated_products = result["updateLowStockProducts"]["updatedProducts"]
-#         message = result["updateLowStockProducts"]["message"]
-
-#         with open(log_path, "a") as log_file:
-#             log_file.write(f"\n[{timestamp}] {message}\n")
-#             for product in updated_products:
-#                 log_file.write(f" - {product['name']}: {product['stock']}\n")
-
-#     except Exception as e:
-#         with open(log_path, "a") as log_file:
-#             log_file.write(f"\n[{timestamp}] Failed to update stock: {e}\n")
-
+        with open("/tmp/low_stock_updates_log.txt", "a") as f:
+            f.write(f"{timestamp} Failed to update stock: {e}\n")
 
 def log_crm_heartbeat():
     timestamp = datetime.datetime.now().strftime("%d/%m/%Y-%H:%M:%S")
