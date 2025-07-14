@@ -1,65 +1,29 @@
-# #!/bin/bash
-
-# # Change to the Django project root
-# cd /mnt/c/Users/User/desktop/airbnb/alx-backend-graphql_crm
-
-# # Run Django shell command to delete inactive customers
-# deleted_count=$(python3 manage.py shell <<EOF
-# from crm.models import Customer
-# from datetime import datetime, timedelta
-
-# cutoff = datetime.now() - timedelta(days=365)
-# inactive_customers = Customer.objects.filter(order__isnull=True, created__lt=cutoff)
-# count = inactive_customers.count()
-# inactive_customers.delete()
-# print(count)
-# EOF
-# )
-
-# # Log the result to file
-# echo "$(date): Deleted $deleted_count inactive customers" >> /tmp/customer_cleanup_log.txt
 #!/bin/bash
 
-# # Change to the Django project root
-# cd /mnt/c/Users/User/desktop/airbnb/alx-backend-graphql_crm
+# Activate the virtual environment
+source /mnt/c/users/user/desktop/airbnb/alx-backend-graphql_crm/venv/bin/activate
 
-# # Run Django shell command to delete inactive customers
-# deleted_count=$(python3 manage.py shell <<EOF
-# from crm.models import Customer
-# from datetime import datetime, timedelta
+# Navigate to project root
+cd /mnt/c/users/user/desktop/airbnb/alx-backend-graphql_crm/
 
-# cutoff = datetime.now() - timedelta(days=365)
-# qs = Customer.objects.filter(order__isnull=True, created__lt=cutoff)
-# n = qs.count()
-# qs.delete()
-# print(n)
-# EOF
-# )
+# Run Django shell to delete inactive customers
+deleted_count=$(echo "
+from datetime import timedelta
+from django.utils import timezone
+from crm.models import Customer, Order
 
-# # Log the result to file
-# echo "$(date): Deleted $deleted_count inactive customers" >> /tmp/customer_cleanup_log.txt
- 
+one_year_ago = timezone.now() - timedelta(days=365)
+inactive_customers = Customer.objects.exclude(
+    id__in=Order.objects.values_list('customer_id', flat=True)
+).filter(created_at__lt=one_year_ago)
 
- #!/bin/bash
+count = inactive_customers.count()
+inactive_customers.delete()
+print(count)
+" | python3 manage.py shell)
 
-# BAD: This script will likely FAIL the checker
+# Log result with timestamp
+echo "$(date): Deleted $deleted_count inactive customers" >> /tmp/customer_cleanup_log.txt
 
-echo "Testing forbidden strings..."
+#echo "\"$(date): Deleted \$deleted_count inactive customers\"" >> /tmp/customer_cleanup_log.txt
 
-# Print current working directory (forbidden)
-echo "Current directory is: $(pwd)"
-
-# Use BASH_SOURCE (forbidden)
-echo "This script path: ${BASH_SOURCE[0]}"
-
-# Use cwd reference (forbidden)
-cwd=$(pwd)
-echo "CWD is $cwd"
-
-# Simple if-else block (forbidden)
-value=10
-if [ "$value" -gt 5 ]; then
-  echo "Value is greater than 5"
-else
-  echo "Value is not greater than 5"
-fi

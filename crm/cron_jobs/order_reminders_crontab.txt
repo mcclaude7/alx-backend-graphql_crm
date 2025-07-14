@@ -1,1 +1,2 @@
-0 8 * * * /usr/bin/python3 /mnt/c/users/user/desktop/airbnb/alx-backend-graphql_crm/crm/cron_jobs/send_order_reminders.py
+# Runs daily at 8 AM
+0 8 * * * /path/to/your/venv/bin/python /path/to/alx-backend-graphql_crm/manage.py runcrons
