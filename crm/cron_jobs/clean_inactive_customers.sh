@@ -1,29 +1,30 @@
 #!/bin/bash
 
-# Activate the virtual environment
-source /mnt/c/users/user/desktop/airbnb/alx-backend-graphql_crm/venv/bin/activate
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# Navigate to project root
-cd /mnt/c/users/user/desktop/airbnb/alx-backend-graphql_crm/
+# Activate the virtual environment if it exists
+if [ -f "$PROJECT_ROOT/venv/bin/activate" ]; then
+  source "$PROJECT_ROOT/venv/bin/activate"
+else
+  echo "Virtual environment not found in $PROJECT_ROOT/venv"
+  exit 1
+fi
 
-# Run Django shell to delete inactive customers
+# Run the Django shell command to delete inactive customers
 deleted_count=$(echo "
-from datetime import timedelta
-from django.utils import timezone
-from crm.models import Customer, Order
-
-one_year_ago = timezone.now() - timedelta(days=365)
-inactive_customers = Customer.objects.exclude(
-    id__in=Order.objects.values_list('customer_id', flat=True)
-).filter(created_at__lt=one_year_ago)
-
-count = inactive_customers.count()
-inactive_customers.delete()
+from crm.models import Customer
+count = Customer.objects.filter(is_active=False).count()
+Customer.objects.filter(is_active=False).delete()
 print(count)
-" | python3 manage.py shell)
+" | python "$PROJECT_ROOT/manage.py" shell)
 
-# Log result with timestamp
-echo "$(date): Deleted $deleted_count inactive customers" >> /tmp/customer_cleanup_log.txt
-
-#echo "\"$(date): Deleted \$deleted_count inactive customers\"" >> /tmp/customer_cleanup_log.txt
+# Log the result with full path
+LOG_FILE="/tmp/customer_cleanup_log.txt"
+if [ -n "$deleted_count" ]; then
+  echo "$(date): Deleted $deleted_count inactive customers" >> "$LOG_FILE"
+else
+  echo "$(date): Failed to retrieve deleted count" >> "$LOG_FILE"
+fi
 
